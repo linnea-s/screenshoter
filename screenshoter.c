@@ -1,5 +1,7 @@
 /* screenshoter.c */
 /* Copyright (C) 2004 German Poo-Caaman~o <gpoo@ubiobio.cl>
+ * Copyright (C) 2009-2016 Linnea Skogtvedt
+ * Copyright (C) 2019 Mike Gabriel <mike.gabriel@das-netzwerkteam.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -34,15 +36,18 @@ take_screenshot (gint new_width, gint new_height)
 	gint width, height;
 	GdkPixbuf *screenshot = NULL;
 	GdkPixbuf *thumbnail = NULL;
-	GError *error = NULL;
+	GdkWindow *root_win = NULL;
 
-	width = gdk_screen_width ();
-	height = gdk_screen_height ();
+	root_win = gdk_get_default_root_window();
 
-	screenshot = gdk_pixbuf_get_from_drawable (NULL,
-						   gdk_get_default_root_window
-						   (), NULL, 0, 0, 0, 0,
-						   width, height);
+	width = gdk_window_get_width(root_win);
+	height = gdk_window_get_height(root_win);
+
+	screenshot = gdk_pixbuf_get_from_window (gdk_get_default_root_window(),
+	                                         0, 0,
+	                                         width,
+	                                         height
+	);
 
 	if (new_width != 0 && new_height <= 0) {
 		new_height =
@@ -88,7 +93,7 @@ main (int argc, char **argv)
 	gboolean base64 = FALSE;
 	gboolean std = FALSE;
 	FILE *outfile;
-	gchar *b64data;
+	gchar *b64data = NULL;
 	gchar *quality = NULL;
 	gint quality_i = -1;
 	gint timeout = 0;
@@ -111,7 +116,7 @@ main (int argc, char **argv)
 	optCon =
 	    poptGetContext (NULL, argc, (const char **) argv, optionsTable,
 			    0);
-	poptSetOtherOptionHelp (optCon, "[options] -o Filename.jpg");
+	poptSetOtherOptionHelp (optCon, "-o Filename.jpg");
 
 	if (argc < 2) {
 		poptPrintUsage (optCon, stderr, 0);
@@ -182,7 +187,7 @@ main (int argc, char **argv)
 		return 1;
 	}
 	if (base64) {
-		b64data = g_base64_encode(buffer, buffer_size);
+		b64data = g_base64_encode((guchar*)buffer, buffer_size);
 	}
 	if (std) {
 		outfile = stdout;
